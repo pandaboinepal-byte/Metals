@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gold & Silver in NPR</title>
+<style>
+:root{--bg:#f3f1ec;--ink:#1d1b16;--mute:#6f6a5e;--card:#fff;--line:#ddd8cc;--up:#1b7a43;--down:#b3261e;--gold:#b8862b;--silver:#7d8a96}
+@media (prefers-color-scheme:dark){:root{--bg:#14130f;--ink:#f1eee6;--mute:#9a9486;--card:#1e1c17;--line:#34312a;--up:#5cc98a;--down:#ff8a80;--gold:#e0b050;--silver:#a9b6c2}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:max(20px,env(safe-area-inset-top)) 18px max(24px,env(safe-area-inset-bottom))}
+main{max-width:480px;margin:0 auto}
+h1{font:600 1.1rem Georgia,serif;margin:0 0 4px}
+.sub{color:var(--mute);font-size:.85rem;margin:0 0 20px}
+.metal{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:6px;padding:16px 18px;margin-bottom:14px}
+.metal h2{margin:0;font-size:.95rem;font-weight:500;color:var(--mute)}
+.price{font:600 2.1rem/1.2 Georgia,serif;font-variant-numeric:tabular-nums;margin:4px 0}
+.price small{font:400 .9rem system-ui,sans-serif;color:var(--mute)}
+.chg{font-weight:600;font-size:.95rem}.up{color:var(--up)}.down{color:var(--down)}
+svg{width:100%;height:46px;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:7px 0;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mute);font-weight:500}
+.hist{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 18px}
+#err{color:var(--down)}
+</style>
+</head>
+<body>
+<main>
+<h1>Gold & Silver in NPR</h1>
+<p class="sub" id="sub">Loading…</p>
+<div id="cards"></div>
+<div class="hist"><table><thead><tr><th>Date</th><th>Gold</th><th>Silver</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p class="sub" style="margin-top:14px">International price converted to NPR per 10 g. Excludes tax, VAT and dealer premium.</p>
+</main>
+<script>
+const fmt=n=>Number(n).toLocaleString("en-US");
+function spark(vals,color){
+  if(vals.length<2)return"";
+  const min=Math.min(...vals),max=Math.max(...vals),r=max-min||1;
+  const pts=vals.map((v,i)=>(i/(vals.length-1)*300).toFixed(1)+","+(42-(v-min)/r*38).toFixed(1)).join(" ");
+  return `<svg viewBox="0 0 300 46" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+}
+function card(name,key,color,d){
+  const m=d[key],c=m.change_pct;
+  const ch=c==null?"":`<span class="chg ${c>=0?"up":"down"}">${c>=0?"▲":"▼"} ${Math.abs(c).toFixed(2)}% since last update</span>`;
+  const vals=d.history.slice(-14).map(h=>h[key]);
+  return `<section class="metal" style="--c:${color}"><h2>${name}</h2><div class="price">NPR ${fmt(m.npr10g)} <small>per 10 g</small></div>${ch}${spark(vals,color)}</section>`;
+}
+fetch("data.json?"+Date.now()).then(r=>r.json()).then(d=>{
+  document.getElementById("cards").innerHTML=card("Gold","gold","var(--gold)",d)+card("Silver","silver","var(--silver)",d);
+  const t=new Date(d.updated);
+  document.getElementById("sub").textContent="Updated "+t.toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"})+" · USD/NPR "+d.usd_npr;
+  document.getElementById("rows").innerHTML=d.history.slice(-7).reverse().map(h=>`<tr><td>${new Date(h.t).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</td><td>${fmt(h.gold)}</td><td>${fmt(h.silver)}</td></tr>`).join("");
+}).catch(()=>{document.getElementById("sub").innerHTML='<span id="err">No data yet. Run the GitHub workflow once.</span>'});
+</script>
+</body>
+</html>
