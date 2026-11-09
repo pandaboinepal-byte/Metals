@@ -1,0 +1,24 @@
+name: metals
+on:
+  schedule:
+    - cron: "15 2 * * 1-5"   # 8:00 AM Nepal time, Mon-Fri
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install requests
+      - run: python notify.py
+        env:
+          METAL_API_KEY: ${{ secrets.METAL_API_KEY }}
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT: ${{ secrets.TG_CHAT }}
+      - run: |
+          git config user.name "metals-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add data.json
+          git commit -m "update rates" || exit 0
+          git push
